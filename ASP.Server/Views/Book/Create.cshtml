@@ -17,6 +17,86 @@ label {
     flex-basis:10%;
 }
 </style>
+<script>
+    tinymce.init({
+        selector: '#editor',
+        menubar: false,
+        statusbar: false,
+        plugins: 'a11ychecker advlist advcode advtable autolink checklist export lists link image charmap preview anchor searchreplace visualblocks powerpaste fullscreen formatpainter insertdatetime media table help wordcount',
+        toolbar: 'undo redo | blocks | bold italic strikethrough | backcolor | alignleft aligncenter alignright alignjustify | blockquote bullist numlist checklist outdent indent |  link image media | removeformat help fullscreen',
+        skin: 'bootstrap',
+        toolbar_drawer: 'floating',
+        min_height: 200,
+        autoresize_bottom_margin: 16,
+        setup: (editor) => {
+            editor.on('init', () => {
+                editor.getContainer().style.transition = "border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out"
+            });
+            editor.on('focus', () => {
+                editor.getContainer().style.boxShadow = "0 0 0 .2rem rgba(0, 123, 255, .25)",
+                    editor.getContainer().style.borderColor = "#80bdff"
+            });
+            editor.on('blur', () => {
+                editor.getContainer().style.boxShadow = "",
+                    editor.getContainer().style.borderColor = ""
+            });
+        }
+    });
+</script>
+<script>
+    function convertHtmlToRtf() {
+        var html = document.getElementById('editor').value;
+        if (!(typeof html === "string" && html)) {
+            return null;
+        }
+
+        var tmpRichText, hasHyperlinks;
+        var richText = html;
+
+        // Singleton tags
+        richText = richText.replace(/<(?:hr)(?:\s+[^>]*)?\s*[\/]?>/ig, "{\\pard \\brdrb \\brdrs \\brdrw10 \\brsp20 \\par}\n{\\pard\\par}\n");
+        richText = richText.replace(/<(?:br)(?:\s+[^>]*)?\s*[\/]?>/ig, "{\\pard\\par}\n");
+
+        // Empty tags
+        richText = richText.replace(/<(?:p|div|section|article)(?:\s+[^>]*)?\s*[\/]>/ig, "{\\pard\\par}\n");
+        richText = richText.replace(/<(?:[^>]+)\/>/g, "");
+
+        // Hyperlinks
+        richText = richText.replace(
+            /<a(?:\s+[^>]*)?(?:\s+href=(["'])(?:javascript:void\(0?\);?|#|return false;?|void\(0?\);?|)\1)(?:\s+[^>]*)?>/ig,
+            "{{{\n");
+        tmpRichText = richText;
+        richText = richText.replace(
+            /<a(?:\s+[^>]*)?(?:\s+href=(["'])(.+)\1)(?:\s+[^>]*)?>/ig,
+            "{\\field{\\*\\fldinst{HYPERLINK\n \"$2\"\n}}{\\fldrslt{\\ul\\cf1\n");
+        hasHyperlinks = richText !== tmpRichText;
+        richText = richText.replace(/<a(?:\s+[^>]*)?>/ig, "{{{\n");
+        richText = richText.replace(/<\/a(?:\s+[^>]*)?>/ig, "\n}}}");
+
+        // Start tags
+        richText = richText.replace(/<(?:b|strong)(?:\s+[^>]*)?>/ig, "{\\b\n");
+        richText = richText.replace(/<(?:i|em)(?:\s+[^>]*)?>/ig, "{\\i\n");
+        richText = richText.replace(/<(?:u|ins)(?:\s+[^>]*)?>/ig, "{\\ul\n");
+        richText = richText.replace(/<(?:strike|del)(?:\s+[^>]*)?>/ig, "{\\strike\n");
+        richText = richText.replace(/<sup(?:\s+[^>]*)?>/ig, "{\\super\n");
+        richText = richText.replace(/<sub(?:\s+[^>]*)?>/ig, "{\\sub\n");
+        richText = richText.replace(/<(?:p|div|section|article)(?:\s+[^>]*)?>/ig, "{\\pard\n");
+
+        // End tags
+        richText = richText.replace(/<\/(?:p|div|section|article)(?:\s+[^>]*)?>/ig, "\n\\par}\n");
+        richText = richText.replace(/<\/(?:b|strong|i|em|u|ins|strike|del|sup|sub)(?:\s+[^>]*)?>/ig, "\n}");
+
+        // Strip any other remaining HTML tags [but leave their contents]
+        richText = richText.replace(/<(?:[^>]+)>/g, "");
+
+        // Prefix and suffix the rich text with the necessary syntax
+        richText =
+            "{\\rtf1\\ansi\n" + (hasHyperlinks ? "{\\colortbl\n;\n\\red0\\green0\\blue255;\n}\n" : "") + richText +
+            "\n}";
+
+        return richText;
+    }
+</script>
 
 <!-- Voici une facon de faire, mais ce n'est pas la seul, a vous de jouer ! -->
 <form asp-controller="Book" asp-action="Create">
@@ -33,8 +113,8 @@ label {
         <input asp-for="Prix" class="form-control" placeholder="Prix" />
     </div>
     <div class="form-group">
-        <label asp-for="Contenu"></label>
-        <input asp-for="Contenu" class="form-control" placeholder="Contenu" />
+        <label asp-for="Contenu">Formatez le contenu du livre</label>
+        <textarea asp-for="Contenu" id="editor"></textarea>
     </div>
     <div class="input-group">
         <label asp-for="GenresSelectionne">Genre selectionné</label>
@@ -42,6 +122,6 @@ label {
         <select asp-for="GenresSelectionne" asp-items="@(new SelectList(Model.AllGenres,"Id","Nom"))">
         </select>
     </div>
-        <input type="submit" value="Créer le livre" class="btn btn-primary" style="width: 100%; margin-top: 50px;justify-content:center" />
+    <input type="submit" value="Créer le livre" class="btn btn-primary" style="width: 100%; margin-top: 50px;justify-content:center" />
 </form>
 

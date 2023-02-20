@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using WPF.Reader.Model;
 using WPF.Reader.Service;
 using System.Speech.Synthesis;
+using System.Windows.Controls;
 
 namespace WPF.Reader.ViewModel
 {

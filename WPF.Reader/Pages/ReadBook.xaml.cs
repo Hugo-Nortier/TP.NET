@@ -1,7 +1,13 @@
 ﻿using System.Globalization;
+using System.IO;
+using System.Reflection;
 using System.Speech.Synthesis;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Media;
+using Xceed.Wpf.Toolkit;
 
 namespace WPF.Reader.Pages
 {
@@ -60,8 +66,8 @@ namespace WPF.Reader.Pages
             this.btnpause.Content = "⏸︎ Pause";
             this.btnsay.IsEnabled = true;
             this.Livre.IsInactiveSelectionHighlightEnabled = false;
-
-            if (this.Livre.SelectedText.Length > 0)
+            
+            if (Livre.Selection.Text.Length > 0)
                 this.btnplayselection.IsEnabled = true;
             else
                 this.btnplayselection.IsEnabled = false;
@@ -69,37 +75,44 @@ namespace WPF.Reader.Pages
 
         private void Synthsizer_SpeakProgress(object? sender, SpeakProgressEventArgs e)
         {
-
             if (btnplayselection.IsEnabled == false)
             {
+                ClearHighLight();
                 this.Livre.Focus();
-                this.Livre.Select(e.CharacterPosition, e.Text.Length);
+                TextRange textRange = new TextRange(Livre.Document.ContentStart, Livre.Document.ContentEnd);
+                textRange.Select(textRange.Start.GetPositionAtOffset(e.CharacterPosition), textRange.Start.GetPositionAtOffset(e.CharacterPosition + e.Text.Length));
+                textRange.ApplyPropertyValue(TextElement.BackgroundProperty, (SolidColorBrush)new BrushConverter().ConvertFrom("#99C9EF"));
             }
-            else
+            else // si on lit du texte sélectionné... on aimerait traduire la ligne commentée qui fonctionne en TextBlock vers du RichTextBlock...
+                 // mais comment faire? Je n'ai pas trouvé.
             {
                 this.Livre.Focus();
-                this.Livre.Select(this.Livre.SelectionStart, this.Livre.SelectionLength);
+                //this.Livre.Select(this.Livre.SelectionStart, this.Livre.SelectionLength);
             }
         }
-
+        private void ClearHighLight()
+        {
+            TextRange textRange = new TextRange(Livre.Document.ContentStart, Livre.Document.ContentEnd);
+            textRange.ApplyPropertyValue(TextElement.BackgroundProperty, null);
+        }
         private void Btnsay_Click(object sender, RoutedEventArgs e)
         {
             if (synthsizer != null)
             {
                 synthsizer.Dispose();
             }
-
             if (Livre.Text.ToString().Trim().Length == 0)
             {
-                MessageBox.Show("Sélectionnez du texte");
+                Xceed.Wpf.Toolkit.MessageBox.Show("Sélectionnez du texte");
                 return;
             }
-
             InitializeSynthsizer();
 
             if (synthsizer != null)
             {
-                synthsizer.SpeakAsync(this.Livre.Text);
+                string leLivre = new TextRange(Livre.Document.ContentStart, Livre.Document.ContentEnd).Text;
+
+                synthsizer.SpeakAsync(leLivre);
             }
 
             this.btnpause.IsEnabled = true;
@@ -130,9 +143,9 @@ namespace WPF.Reader.Pages
 
         private void Btnplayselection_Click(object sender, RoutedEventArgs e)
         {
-            if (this.Livre.SelectionLength > 0)
+            if (Livre.Selection.Text.Length > 0)
             {
-                PlaySelectedText(this.Livre.SelectedText.ToString());
+                PlaySelectedText(Livre.Selection.Text.ToString());
             }
         }
 
@@ -149,15 +162,12 @@ namespace WPF.Reader.Pages
 
         private void Btnstop_Click(object sender, RoutedEventArgs e)
         {
-
+            ClearHighLight();
             this.btnpause.Content = "⏸︎ Pause";
             this.btnpause.IsEnabled = false;
             this.btnsay.IsEnabled = true;
             this.Livre.IsInactiveSelectionHighlightEnabled = false;
             this.btnplayselection.IsEnabled = false;
-            this.Livre.SelectionLength = 0;
-            this.Livre.SelectionStart = 0;
-
             if (this.synthsizer != null)
             {
                 this.synthsizer.Dispose();
@@ -169,7 +179,7 @@ namespace WPF.Reader.Pages
         {
             if (this.synthsizer == null)
             {
-                if (this.Livre.SelectedText.Length > 0)
+               if (Livre.Selection.Text.Length > 0)
                 {
                     btnplayselection.IsEnabled = true;
                 }
@@ -183,5 +193,47 @@ namespace WPF.Reader.Pages
                 btnplayselection.IsEnabled = false;
             }
         }
+
+        /*
+         *  solution du forum https://www.c-sharpcorner.com/UploadFile/nipuntomar/text-to-speech-with-highlight-text-support-in-wpf/
+         *  n'a pas de latence... mais si le mot est présent plusieurs fois: saute des lignes. . .
+         *  peut-être à refacto? ou s'inspirer? pour les futurs MBDS?
+        void Synthsizer_SpeakProgress(object sender, SpeakProgressEventArgs e)
+        {
+            SolidColorBrush highlightColor = (SolidColorBrush) new BrushConverter().ConvertFrom("#99C9EF");
+            HighlightWordInRichTextBox(e.Text, highlightColor);
+        }
+
+        private void HighlightWordInRichTextBox(string word, SolidColorBrush color)
+        {
+            TextRange textRange = new TextRange(Livre.Document.ContentStart, Livre.Document.ContentEnd);
+            textRange.ApplyPropertyValue(TextElement.BackgroundProperty, null);            
+            TextRange tr = FindWordFromPosition(Livre.CaretPosition, word);
+            if (!object.Equals(tr, null))
+            {
+                Livre.CaretPosition = tr.End;
+                tr.ApplyPropertyValue(TextElement.BackgroundProperty, color);
+            }
+        }
+        private TextRange FindWordFromPosition(TextPointer position, string word)
+        {
+            while (position != null)
+            {
+                if (position.GetPointerContext(LogicalDirection.Forward) == TextPointerContext.Text)
+                {
+                    string textRun = position.GetTextInRun(LogicalDirection.Forward);
+                    int indexInRun = textRun.IndexOf(word);
+                    if (indexInRun >= 0)
+                    {
+                        TextPointer start = position.GetPositionAtOffset(indexInRun);
+                        TextPointer end = start.GetPositionAtOffset(word.Length);
+                        return new TextRange(start, end);
+                    }
+                }
+                position = position.GetNextContextPosition(LogicalDirection.Forward);
+            }
+            return null;
+        }
+        */
     }
 }
