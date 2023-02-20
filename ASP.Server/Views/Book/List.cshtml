@@ -1,19 +1,53 @@
-﻿@using ASP.Server.Model
-@model List<Object>
+﻿@using ASP.Server.Controllers
+@model CreateBookModel
 @{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Liste de livres";
+}
+<h1>Liste de livres</h1>
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    
+    <div class="form-horizontal">
+        <h4>Filtres</h4>
+        <hr />
+        <div class="form-group">
+            <div class="input-group">
+                @Html.LabelFor(m => m.GenresSelectionne,"Filtrer par genre", htmlAttributes: new { @class = "control-label required col-8" })
+
+                <div class="col-12">
+                    @Html.DropDownList("GenresSelectionne", new  MultiSelectList(Model.AllGenres,"Id","Nom"),new { @class = "form-control multiple" ,multiple="multiple"})
+                </div>
+            </div>
+            <div class="input-group">
+                @Html.LabelFor(m => m.AuteurSelectionne,"Filtrer par auteur", htmlAttributes: new { @class = "control-label required col-8" })
+                <div class="col-12">
+                    @Html.DropDownList("AuteurSelectionne", new  MultiSelectList(Model.AllAuteurs,"Nom","Nom"),new { @class = "form-control multiple" ,multiple="multiple"})
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input type="submit" value="Filtrer" class="btn btn-primary" />
+            </div>
+        </div>
+    </div>
 }
 
+<hr />
 
 <div class="listeBooks">
-    <h1>Liste des livres:</h1>
+    <p>@(Model.filtermsg)</p>
+
     <!-- la liste des genres est dans la variable Model qui est typé en ligne 3, elle correspond à la variable xxx dans View(xxx) du controller -->
 
     <table id="example" class="table" data-search="true">
         <thead>
             <tr>
                 <th scope="col" data-filter-control="input" data-sortable="true">Id</th>
-                <th scope="col">Nom</th>
+                <th scope="col">Titre</th>
                 <th scope="col">Auteur</th>
                 <th scope="col">Prix</th>
                 <th scope="col">Genre(s)</th>
@@ -22,7 +56,7 @@
         </thead>
         <tbody>
 
-            @foreach (var book in (List<Book>)Model[0])
+            @foreach (var book in Model.AllBooks)
             {
                     <tr>
                     <td>

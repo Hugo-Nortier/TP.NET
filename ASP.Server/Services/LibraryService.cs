@@ -35,6 +35,14 @@ namespace ASP.Server.Service
             return new BookDto { Id = book.Id, Auteur = book.Auteur.Nom, Nom = book.Nom, Prix = book.Prix, Contenu = book.Contenu, Genres = genres };
         }
 
+        public static bool ContainsGenre(List<int> genresFilter, List<Genre> genres)
+        {
+            foreach(Genre i in genres)
+            {
+                if(genresFilter.Contains(i.Id)) return true;
+            }
+            return false;
+        }
         public static GenreDto ConvertToGenreDto(Genre genre)
         {
             return new GenreDto { Id = genre.Id, Nom = genre.Nom};
