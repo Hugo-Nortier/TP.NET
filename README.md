@@ -1,5 +1,10 @@
 # TP .NET
 
+Il y a [deux releases](https://github.com/Hugo-Nortier/TP.NET/releases).
+Le travail a été réalisé ainsi que les options.
+La branche master possède tout ce qui était obligatoire ainsi que toutes les options sauf le formatage.  
+La branche rtf possède tout ce qui était obligatoire ainsi que toutes les options même le formatage. Voir release "rtf_release" pour en apprendre +.   
+
 # But
 Construire un web service avec son client Windows pour gerer et consulter une bibliothèque de livres
 # A rendre
